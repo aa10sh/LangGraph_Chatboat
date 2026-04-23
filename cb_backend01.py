@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages 
 from dotenv import load_dotenv
@@ -14,7 +14,7 @@ print("Api key loaded")
 model=ChatOpenAI()
 
 class ChatState(TypedDict):
-    messages: Annotated[list, add_messages]
+    messages: Annotated[list[BaseMessage], add_messages]
     ## The add_messages annotation ensures messages are appended rather than replaced.
 
 def llm_response(state: ChatState):

@@ -47,13 +47,15 @@ if user_input:
 
  ## Get AI Response from LangGraph
  # Invoke the chatbot with the user's message 
-  response=workflow.invoke({
-    'messages': [HumanMessage(content=user_input)]
-  },
-  config=CONFIG)
-
-  # Extract the Al's response (last message in the list) 
-  ai_message = response['messages'][-1].content
+  with st.chat_message('assistant'):
+    ai_message=st.write_stream(
+      message_chunk.content
+        for message_chunk, metadata in workflow.stream(
+          {'messages':[HumanMessage(content=user_input)]},
+          config=CONFIG,
+          stream_mode='messages'
+        )
+    )  
   
   ## Handle AI Message
   # Add to history
@@ -62,6 +64,6 @@ if user_input:
   'content': ai_message
   })
 
-  # Display on screen
-  with st.chat_message('assistant'): 
-   st.text(ai_message)
+  # # Display on screen
+  # with st.chat_message('assistant'): 
+  #  st.text(ai_message)

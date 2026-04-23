@@ -35,5 +35,6 @@ graph.add_node('llm_response',llm_response)
 
 graph.add_edge(START,'llm_response')
 graph.add_edge('llm_response',END)
+checkpoint=MemorySaver()
 
-workflow=graph.compile()
+workflow=graph.compile(checkpointer=checkpoint)

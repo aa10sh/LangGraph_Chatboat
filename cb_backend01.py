@@ -1,8 +1,10 @@
 from langgraph.graph import StateGraph, START, END
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage
-from typing import TypedDict
+from typing import TypedDict, Annotated
+from langgraph.graph.message import add_messages 
 from dotenv import load_dotenv
+from langgraph.checkpoint.memory import MemorySaver
 import os
 
 ## Load environment variables
@@ -11,23 +13,27 @@ print("Api key loaded")
 ## Define model
 model=ChatOpenAI()
 
-## Defining state of the Graph
 class ChatState(TypedDict):
-    user_message: str
-    ai_message: str
+    messages: Annotated[list, add_messages]
+    ## The add_messages annotation ensures messages are appended rather than replaced.
 
 def llm_response(state: ChatState):
-    prompt=f'return a short, precise answer of the user query: {state["user_message"]}'
-    ai_message=model.invoke(prompt).content
-    return {'ai_message': ai_message}
+    """
+    Chat node function that processes messages through the LLM.
+    Args:
+    state: Current state containing message history
+    Returns:
+    Dictionary with the LLM's response message
+    """
+    return {'messages': [model.invoke(state['messages'])]}
 
 
 ## Define Graph
 graph=StateGraph(ChatState)
+
 graph.add_node('llm_response',llm_response)
+
 graph.add_edge(START,'llm_response')
 graph.add_edge('llm_response',END)
-workflow=graph.compile()
 
-result=workflow.invoke({'user_message':'What is Photosynthesis?'})
-print(result)
+workflow=graph.compile()

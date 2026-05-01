@@ -1,5 +1,6 @@
 langgraph
 langchain
+langsmith
 langchain_openai
 dotenv
 streamlit

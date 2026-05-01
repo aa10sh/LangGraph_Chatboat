@@ -3,6 +3,22 @@ from cb_backend02 import workflow, retrieve_all_threads, load_conversation
 from langchain_core.messages import HumanMessage, AIMessage
 import uuid
 
+
+# cb_frontend.py — add after imports, before utility functions
+
+def get_content(msg):
+    """Safely extract string content from a LangChain message.
+    Handles both plain string content and list-of-chunks from streaming."""
+    content = msg.content
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            c.get("text", "") if isinstance(c, dict) else str(c)
+            for c in content
+        )
+    return str(content)
+
 ##_________Utility Functions_________##
 
 def generate_thread_id():
@@ -44,6 +60,7 @@ def get_thread_title(thread_id):
     return "New Conversation"
 
 
+
 # ===========================================
 # STEP 1: Initialize Session State
 # ===========================================
@@ -60,12 +77,12 @@ if 'chat_threads' not in st.session_state:
 
         messages = load_conversation_cached(st.session_state['thread_id'])
         st.session_state['message_history'] = [
-            {
-                "role": "user" if isinstance(m, HumanMessage) else "assistant",
-                "content": m.content
-            }
-            for m in messages
-        ]
+           {
+               "role": "user" if isinstance(m, HumanMessage) else "assistant",
+               "content": get_content(m)     # ← FIXED
+           }
+           for m in messages
+          ]       
 
     else:
         thread_id = generate_thread_id()
@@ -81,8 +98,7 @@ if 'chat_threads' not in st.session_state:
 # ============================================
 for message in st.session_state['message_history']:
     with st.chat_message(message['role']):
-        st.text(message['content'])
-
+        st.markdown(message['content'])  # ← handles content safely, matches chat_message style
 
 # ====================================
 # Sidebar for previous chats
@@ -101,12 +117,16 @@ for thread in st.session_state['chat_threads'][::-1]:
         messages = load_conversation_cached(thread["id"])  # no cache: always fresh
 
         temp_messages = []
+        # In cb_frontend.py, when building temp_messages:
         for msg in messages:
             role = 'user' if isinstance(msg, HumanMessage) else 'assistant'
-            temp_messages.append({'role': role, 'content': msg.content})
-
-        st.session_state['message_history'] = temp_messages
-        st.rerun()
+            content = msg.content
+            if isinstance(content, list):  # handle tool-use / chunk content
+                content = " ".join(
+                    c.get("text", "") if isinstance(c, dict) else str(c) 
+                    for c in content
+                )
+            temp_messages.append({'role': role, 'content': content})
 
 
 ###____MAIN UI___###
